@@ -1,48 +1,49 @@
-from llama_index.core import VectorStoreIndex, SimpleDirectoryReader, StorageContext, Document
-from llama_index.embeddings.openai import OpenAIEmbedding
-# from llama_index.vector_stores.chroma import ChromaVectorStore
-from llama_index.core.node_parser import SimpleNodeParser
-from llama_index.core.schema import TextNode
+# ✅ Refactor vectorstore to Qdrant-based usage (DYNAMIC from settings)
 
-from typing import List, Dict
 import os
+import streamlit as st
+from llama_index.core import VectorStoreIndex, SimpleDirectoryReader, StorageContext
+from llama_index.vector_stores.qdrant import QdrantVectorStore
+from llama_index.embeddings.openai import OpenAIEmbedding
+from qdrant_client import QdrantClient
+from llama_index.core.schema import Document
 
-PERSIST_DIR = "chroma_db"
+# ⚙️ Load Qdrant settings from session_state
+QDRANT_HOST = st.session_state.get("qdrant_host", "localhost")
+QDRANT_PORT = int(st.session_state.get("qdrant_port", 6333))
+QDRANT_COLLECTION = st.session_state.get("qdrant_collection", "chatdb-index")
 
-def build_documents_from_db_metadata(table_relations: List[Dict]) -> List[Document]:
-    documents = []
-    grouped = {}
-    for r in table_relations:
-        key = r["ParentTable"]
-        grouped.setdefault(key, []).append(r)
-    
-    for table, rels in grouped.items():
-        doc_text = f"Table `{table}` has columns:\n"
-        columns = set()
-        for rel in rels:
-            columns.add(rel['ParentColumn'])
-        doc_text += "- " + "\n- ".join(columns) + "\n\n"
+qdrant_client = QdrantClient(host=QDRANT_HOST, port=QDRANT_PORT)
 
-        doc_text += "Relationships:\n"
-        for rel in rels:
-            doc_text += f"- `{table}`.{rel['ParentColumn']} → `{rel['RefTable']}`.{rel['RefColumn']}\n"
-        
-        documents.append(Document(text=doc_text))
-    
-    return documents
+vector_store = QdrantVectorStore(
+    client=qdrant_client,
+    collection_name=QDRANT_COLLECTION,
+)
 
-def index_structure(table_relations: List[Dict]):
-    documents = build_documents_from_db_metadata(table_relations)
+embed_model = OpenAIEmbedding()
 
-    vector_store = ChromaVectorStore(persist_dir=PERSIST_DIR)
+# 👉 Structure indexing
+def index_structure(structure_data: list, collection_name="db_structure"):
+    docs = [Document(text=str(item)) for item in structure_data]
+
+    client = QdrantClient(host=QDRANT_HOST, port=QDRANT_PORT)
+    vector_store = QdrantVectorStore(client=client, collection_name=collection_name)
     storage_context = StorageContext.from_defaults(vector_store=vector_store)
 
     index = VectorStoreIndex.from_documents(
-        documents,
+        docs,
         storage_context=storage_context,
-        embed_model=OpenAIEmbedding(),
-        show_progress=True
+        embed_model=embed_model,
     )
-
-    index.storage_context.persist()
+    index.storage_context.persist(persist_dir=".qdrant")
     return index
+
+# 👉 File indexing
+def index_uploaded_files(directory: str):
+    documents = SimpleDirectoryReader(directory).load_data()
+    index = VectorStoreIndex.from_documents(documents, vector_store=vector_store, embed_model=embed_model)
+    index.storage_context.persist(persist_dir=".qdrant")
+
+# 👉 Retrieval
+def get_structural_retriever():
+    return VectorStoreIndex.from_vector_store(vector_store, embed_model=embed_model).as_retriever()

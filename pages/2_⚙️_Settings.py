@@ -1,4 +1,6 @@
 import json
+import re
+
 import streamlit as st
 from urllib.parse import quote_plus
 from sqlalchemy import create_engine, text
@@ -8,6 +10,7 @@ from backup import backup_settings, load_settings
 from common import DatabaseProps, set_openai_api_key, init_session_state
 from vector_indexer import index_structure
 from file_indexer import index_uploaded_files
+
 # ─────────────── Session Init ───────────────
 init_session_state()
 st.set_page_config(page_title="Settings", page_icon="⚙️")
@@ -85,8 +88,7 @@ with st.expander("Connect to SQL Server"):
 
                     rel_result = conn.execute(text(rel_query)).fetchall()
                     rel_list = [dict(row._mapping) for row in rel_result]
-                    st.session_state["table_relations"] = rel_list  # bisa digunakan oleh agent nanti
-
+                    st.session_state["table_relations"] = rel_list
 
                 st.session_state["available_databases"] = db_names
                 st.session_state["base_uri"] = uri
@@ -94,15 +96,13 @@ with st.expander("Connect to SQL Server"):
             except Exception as e:
                 st.error(f"Connection failed: {e}", icon="🚨")
 
-
-
 # ─────────────── Select and Save Database ───────────────
 if "available_databases" in st.session_state:
     st.markdown("## Select Database")
     db_choice = st.selectbox("Available Databases", st.session_state["available_databases"])
 
     if st.button("Use This Database"):
-        final_uri = st.session_state["base_uri"].replace("/?", f"/{db_choice}?")  # tetap pakai ini jika uri berbasis '?'
+        final_uri = st.session_state["base_uri"].replace("/?", f"/{db_choice}?")
         db_id = db_choice
         st.session_state.databases[db_id] = DatabaseProps(db_id, final_uri)
         st.success("Database saved!", icon="✔️")
@@ -121,7 +121,6 @@ if "table_relations" in st.session_state and st.button("➕ Index Structure to V
     with st.spinner("Indexing structure..."):
         index_structure(st.session_state["table_relations"])
         st.success("Structure indexed successfully to vectorstore!", icon="✅")
-
 
 # ─────────────── Backup & Restore ───────────────
 st.markdown("## Backup Settings")
@@ -164,15 +163,14 @@ if upload_file:
     except Exception as e:
         st.error(f"Failed to restore backup: {e}", icon="🚨")
 
-
 # Restore
 st.markdown("- ### Upload File")
 uploaded_file = st.file_uploader("Upload PDF/Excel/Doc", type=["pdf", "xlsx", "csv", "docx"])
 if uploaded_file:
-    save_path = f"uploads/{uploaded_file.name}"
+    save_path = f"file/{uploaded_file.name}"
     with open(save_path, "wb") as f:
         f.write(uploaded_file.read())
-    st.success("File uploaded!")
+
 
     if st.button("🔄 Reindex File Vector"):
         index_uploaded_files("uploads")

@@ -1,13 +1,13 @@
-from llama_index.core import VectorStoreIndex, SimpleDirectoryReader
+from llama_index.core import VectorStoreIndex, SimpleDirectoryReader, StorageContext
 from llama_index.embeddings.openai import OpenAIEmbedding
-# from llama_index.vector_stores.chroma import ChromaVectorStore
-from llama_index.core.node_parser import SimpleNodeParser
-from llama_index.core import StorageContext
+from llama_index.vector_stores.qdrant import QdrantVectorStore
+from qdrant_client import QdrantClient
 
-def index_uploaded_files(folder_path="uploads"):
+def index_uploaded_files(folder_path="file", collection_name="uploaded_files"):
     documents = SimpleDirectoryReader(folder_path).load_data()
 
-    vector_store = ChromaVectorStore(persist_dir="file_vector")
+    client = QdrantClient(url="http://localhost:6333")
+    vector_store = QdrantVectorStore(client=client, collection_name=collection_name)
     storage_context = StorageContext.from_defaults(vector_store=vector_store)
 
     index = VectorStoreIndex.from_documents(
@@ -16,5 +16,4 @@ def index_uploaded_files(folder_path="uploads"):
         embed_model=OpenAIEmbedding(),
     )
 
-    index.storage_context.persist()
     return index

@@ -19,6 +19,11 @@ class TrackingDatabaseToolSpec(DatabaseToolSpec):
     handler: Optional[Callable[[str, str, Iterable], None]] = None
     database_name: Optional[str] = None
 
+    def __init__(self, uri: str):
+        super().__init__(uri=uri)
+        self.handler = None
+        self.database_name = None
+
     def set_handler(self, func: Callable[[str, str, Iterable], None]) -> None:
         self.handler = func
 
