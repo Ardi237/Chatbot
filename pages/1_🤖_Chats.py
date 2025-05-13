@@ -9,7 +9,7 @@ from sqlalchemy.exc import DBAPIError, NoSuchColumnError, NoSuchTableError
 import pandas as pd
 import matplotlib.pyplot as plt
 
-from agent import get_agent
+from agent import get_agent, process_user_prompt  # 🆕 Gunakan pipeline 3-lapis
 from backup import backup_conversation, load_conversation
 from common import Conversation, init_session_state
 from multi_database import NoSuchDatabaseError
@@ -18,13 +18,12 @@ from multi_database import NoSuchDatabaseError
 st.set_page_config(page_title="Chats", page_icon="🤖")
 init_session_state()
 
-# 🔒 MOCK SESSION PENGGUNA (contoh pengguna nyata: agentbudi)
+# 🔒 MOCK SESSION PENGGUNA
 if "mock_user_id" not in st.session_state:
     st.session_state["mock_user_id"] = 2
     st.session_state["mock_username"] = "agentbudi"
     st.session_state["mock_role"] = "agent"
     st.session_state["mock_status"] = "active"
-
 
 # ──────────────── Helpers ────────────────
 def new_chat_button_on_click():
@@ -127,13 +126,12 @@ else:
         st.session_state.retry = None
 
     if prompt:
-        # ⛏️ Inject user context into prompt
+        # Inject user context
         user_id = st.session_state.get("mock_user_id")
         username = st.session_state.get("mock_username")
         role = st.session_state.get("mock_role")
         status = st.session_state.get("mock_status")
 
-       
         enriched_prompt = f"""
             [User Info]
             ID: {user_id}
@@ -145,67 +143,24 @@ else:
             {prompt.strip()}
         """
 
-
         with st.chat_message("user"):
             st.markdown(prompt)
         conversation.add_message("user", prompt)
 
-        agent = get_agent(cid, conversation.last_update_timestamp)
-        auto_retry = 3
-        show_retry = False
-
         with st.chat_message("assistant"):
             placeholder = st.empty()
             response_text = ""
-            exception = ""
-            system_message = ""
+            show_retry = False
 
-            while True:
-                try:
-                    if use_streaming:
-                        for res in agent.stream_chat(enriched_prompt).response_gen:
-                            response_text += res
-                            placeholder.markdown(response_text + "▌")
-                    else:
-                        placeholder.markdown("*Thinking...*")
-                        response_text = agent.chat(enriched_prompt).response
+            try:
+                # 🧠 Jalankan pipeline 3-lapis
+                response_text = process_user_prompt(prompt.strip(), cid, rag_mode="combine")
+                placeholder.markdown(response_text)
 
-                except NoSuchColumnError as e:
-                    exception = e
-                    system_message = "Error: NoSuchColumnError\nUse describe_tables() to inspect table columns."
-
-                except NoSuchTableError as e:
-                    exception = e
-                    system_message = "Error: NoSuchTableError\nUse list_tables() to view available tables."
-
-                except NoSuchDatabaseError as e:
-                    exception = e
-                    system_message = "Error: NoSuchDatabaseError\nUse list_databases() to list available databases."
-
-                except DBAPIError as e:
-                    exception = e.orig
-                    system_message = "Error: DBAPIError\nUse describe_tables() to inspect table columns."
-
-                except Exception as e:
-                    response_text = "[System] An error has occurred:\n\n```" + str(e).replace("\n", "\n\n") + "```"
-                    show_retry = True
-
-                else:
-                    if not response_text:
-                        response_text = "[System] Streaming issue. No response."
-                        show_retry = True
-
-                if exception:
-                    agent._memory.put(ChatMessage(role=LLMMessageRole.SYSTEM, content=system_message))
-                    if auto_retry > 0:
-                        auto_retry -= 1
-                        continue
-                    response_text = f"[System] An SQL error has occurred:\n\nError type: `{type(exception).__name__}`\n\n```{str(exception)}```"
-                    show_retry = True
-
-                break
-
-            placeholder.markdown(response_text)
+            except Exception as e:
+                response_text = "[System] An error has occurred:\n\n```" + str(e).replace("\n", "\n\n") + "```"
+                placeholder.markdown(response_text)
+                show_retry = True
 
             if show_retry:
                 st.button("Retry", on_click=retry_chat, args=[prompt, True])
@@ -226,7 +181,7 @@ else:
                     else:
                         st.info("Data terlalu sedikit untuk divisualisasikan.")
                 except Exception as e:
-                    st.error(f"Gagal buat grafik: {e}")    
+                    st.error(f"Gagal buat grafik: {e}")
 
             for db, q, rows in conversation.query_results_queue:
                 df = pd.DataFrame(rows)

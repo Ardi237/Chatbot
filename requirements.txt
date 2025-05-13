@@ -11,4 +11,5 @@ streamlit>=1.34.0
 transformers>=4.40.0
 chromadb>=0.4.24
 tqdm
-qdrant-client>=1.7.0  # ⬅️ WAJIB! untuk backend vectorstore Qdrant kamu
+qdrant-client>=1.7.0  
+scikit-learn==1.2.2

@@ -1,7 +1,7 @@
 import json
 import re
 import urllib
-
+import os
 import streamlit as st
 from sqlalchemy import create_engine, text
 from cryptography.fernet import InvalidToken as InvalidEncryptionKey
@@ -11,6 +11,10 @@ from common import DatabaseProps, set_openai_api_key, init_session_state
 from vector_indexer import index_structure
 from file_indexer import index_uploaded_files
 
+import pandas as pd
+
+os.makedirs("uploads", exist_ok=True)
+os.makedirs("data/faq_docs", exist_ok=True)
 
 def connect_to_sql_server(host, port, user, password):
     params = {
@@ -203,13 +207,54 @@ if upload_file:
     except Exception as e:
         st.error(f"Failed to restore backup: {e}", icon="🚨")
 
-# File Upload & Reindex
-st.markdown("- ### Upload File")
-uploaded_file = st.file_uploader("Upload PDF/Excel/Doc", type=["pdf", "xlsx", "csv", "docx"])
+
+
+st.markdown("- ### Upload File (.txt untuk FAQ, sql_templates.csv untuk SQL, atau .csv biasa untuk indexing)")
+
+uploaded_file = st.file_uploader("Upload file", type=["csv", "txt"])
+
 if uploaded_file:
-    save_path = f"file/{uploaded_file.name}"
-    with open(save_path, "wb") as f:
-        f.write(uploaded_file.read())
-    if st.button("🔄 Reindex File Vector"):
-        index_uploaded_files("uploads")
-        st.success("File vector reindexed!", icon="✅")
+    filename = uploaded_file.name.lower()
+
+    # 🔷 Jika file adalah sql_templates.csv
+    if filename == "sql_templates.csv":
+        save_path = "data/sql_templates.csv"
+        with open(save_path, "wb") as f:
+            f.write(uploaded_file.read())
+        st.success("✅ SQL Templates berhasil disimpan ke data/sql_templates.csv")
+
+        # 🧪 Preview isi SQL Template
+        try:
+            df_preview = pd.read_csv(save_path)
+            st.markdown("### 👀 Preview SQL Templates")
+            st.dataframe(df_preview.head())
+        except Exception as e:
+            st.warning(f"Gagal membaca isi CSV: {e}")
+
+    # 📘 Jika file FAQ .txt → simpan ke folder faq_docs
+    elif filename.endswith(".txt"):
+        save_path = f"data/faq_docs/{filename}"
+        with open(save_path, "wb") as f:
+            f.write(uploaded_file.read())
+        st.success(f"✅ File FAQ '{filename}' berhasil disimpan ke data/faq_docs/")
+
+    # 📂 Jika CSV lain → ke uploads/ untuk indexing ke vectorstore
+    elif filename.endswith(".csv"):
+        save_path = f"uploads/{filename}"
+        with open(save_path, "wb") as f:
+            f.write(uploaded_file.read())
+        st.success(f"✅ File CSV '{filename}' berhasil disimpan ke uploads/")
+
+        # ✅ Tombol reindex
+        if st.button("🔄 Reindex File Vector (CSV)"):
+            with st.spinner("Indexing ulang semua CSV dari uploads/..."):
+                index_uploaded_files(folder_path="uploads")
+                st.success("📚 Semua file CSV diindex ulang ke Qdrant!", icon="✅")
+
+
+
+with st.expander("📂 File di uploads/"):
+    st.write(os.listdir("uploads"))
+
+with st.expander("📂 File di data/faq_docs/"):
+    st.write(os.listdir("data/faq_docs"))

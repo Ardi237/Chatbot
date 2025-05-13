@@ -11,10 +11,14 @@ from llama_index.core.retrievers import RouterRetriever, QueryFusionRetriever
 
 from llama_index.core.query_engine import RetrieverQueryEngine
 
+from file_indexer import match_sql_template, match_faq_answer
+from sql_executor import safe_sql_result
 
 from common import Conversation, DatabaseProps
 from multi_database import MultiDatabaseToolSpec, TrackingDatabaseToolSpec
 from qdrant_client import QdrantClient
+
+
 
 
 @st.cache_resource(show_spinner="🔁 Loading LLM...")
@@ -92,6 +96,47 @@ def get_agent(conversation_id: str, last_update_timestamp: float, rag_mode: str 
         max_iterations=10,
     )
 
+def process_user_prompt(prompt: str, conversation_id: str, rag_mode: str = "combine") -> str:
+    """Pipeline: SQL Template → FAQ → GPT"""
+
+    # 0. Inject user info
+    user_id = st.session_state.get("mock_user_id", "unknown")
+    username = st.session_state.get("mock_username", "unknown")
+    role = st.session_state.get("mock_role", "guest")
+    status = st.session_state.get("mock_status", "inactive")
+
+    enriched_prompt = f"""
+    [User Info]
+    ID: {user_id}
+    Username: {username}
+    Role: {role}
+    Status: {status}
+
+    [Question]
+    {prompt.strip()}
+    """
+
+    # 1. Cek SQL Template
+    sql = match_sql_template(prompt)
+    if sql:
+        try:
+            db_id = st.session_state.conversations[conversation_id].database_ids[0]
+            uri = st.session_state.databases[db_id].uri
+            return safe_sql_result(uri, sql) or "✅ SQL dieksekusi tapi tidak ada hasil."
+        except Exception as e:
+            return f"⚠️ Gagal mengeksekusi SQL: {e}"
+
+    # 2. Cek FAQ
+    faq = match_faq_answer(prompt)
+    if faq:
+        return faq
+
+    # 3. GPT fallback
+    agent = get_agent(conversation_id, st.session_state.get("last_update", 0.0), rag_mode)
+    response = agent.chat(enriched_prompt)
+    return response.response
+
+
 
 
 def get_retriever_by_mode(rag_mode: str) -> RetrieverQueryEngine:
@@ -121,3 +166,4 @@ def get_retriever_by_mode(rag_mode: str) -> RetrieverQueryEngine:
 
     else:
         raise ValueError(f"Unsupported RAG mode: {rag_mode}")
+    
