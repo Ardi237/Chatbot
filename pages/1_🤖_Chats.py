@@ -18,6 +18,14 @@ from multi_database import NoSuchDatabaseError
 st.set_page_config(page_title="Chats", page_icon="🤖")
 init_session_state()
 
+# 🔒 MOCK SESSION PENGGUNA (contoh pengguna nyata: agentbudi)
+if "mock_user_id" not in st.session_state:
+    st.session_state["mock_user_id"] = 2
+    st.session_state["mock_username"] = "agentbudi"
+    st.session_state["mock_role"] = "agent"
+    st.session_state["mock_status"] = "active"
+
+
 # ──────────────── Helpers ────────────────
 def new_chat_button_on_click():
     st.session_state.current_conversation = ""
@@ -119,6 +127,25 @@ else:
         st.session_state.retry = None
 
     if prompt:
+        # ⛏️ Inject user context into prompt
+        user_id = st.session_state.get("mock_user_id")
+        username = st.session_state.get("mock_username")
+        role = st.session_state.get("mock_role")
+        status = st.session_state.get("mock_status")
+
+       
+        enriched_prompt = f"""
+            [User Info]
+            ID: {user_id}
+            Username: {username}
+            Role: {role}
+            Status: {status}
+
+            [Question]
+            {prompt.strip()}
+        """
+
+
         with st.chat_message("user"):
             st.markdown(prompt)
         conversation.add_message("user", prompt)
@@ -136,12 +163,12 @@ else:
             while True:
                 try:
                     if use_streaming:
-                        for res in agent.stream_chat(prompt).response_gen:
+                        for res in agent.stream_chat(enriched_prompt).response_gen:
                             response_text += res
                             placeholder.markdown(response_text + "▌")
                     else:
                         placeholder.markdown("*Thinking...*")
-                        response_text = agent.chat(prompt).response
+                        response_text = agent.chat(enriched_prompt).response
 
                 except NoSuchColumnError as e:
                     exception = e
