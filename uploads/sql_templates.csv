@@ -1,0 +1,21 @@
+No,Pertanyaan,Kategori,SQL Template
+1,Apa status polis dengan nomor POL001?,SQL,SELECT status FROM policies WHERE policy_number = '{policy_number}';
+2,Berapa tagihan saya yang belum dibayar?,SQL,SELECT SUM(amount) FROM policy_billing_notes WHERE status = 'unpaid' AND customer_id = '{customer_id}';
+3,Bagaimana cara mengajukan klaim?,RAG,
+4,Apa itu deductible dalam asuransi?,RAG,
+5,Berapa banyak klaim yang saya ajukan tahun ini?,SQL,SELECT COUNT(*) FROM claims WHERE customer_id = '{customer_id}' AND YEAR(claim_date) = YEAR(GETDATE());
+6,Kapan polis saya berakhir?,SQL,SELECT end_date FROM policies WHERE customer_id = '{customer_id}';
+7,Dokumen apa saja yang dibutuhkan untuk klaim mobil?,RAG,
+8,Apa yang dimaksud dengan polis endorsement?,RAG,
+9,Apa status klaim dengan nomor CLM1001?,SQL,SELECT status FROM claims WHERE claim_number = '{claim_number}';
+10,Berapa premi yang harus saya bayar untuk tahun ini?,SQL,SELECT SUM(premium_amount) FROM policy_billing_notes WHERE customer_id = '{customer_id}' AND YEAR(due_date) = YEAR(GETDATE());
+11,Kapan polis saya mulai berlaku?,SQL,SELECT start_date FROM policies WHERE policy_number = '{policy_number}';
+12,Berapa total klaim saya tahun ini?,SQL,SELECT COUNT(*) FROM claims WHERE customer_id = '{customer_id}' AND YEAR(claim_date) = YEAR(GETDATE());
+13,Apa status klaim CLM20231001?,SQL,SELECT status FROM claims WHERE claim_number = '{claim_number}';
+14,Tagihan apa saja yang belum saya bayar?,SQL,SELECT * FROM policy_billing_notes WHERE status = 'unpaid' AND customer_id = '{customer_id}';
+15,Berapa premi total polis POL001?,SQL,SELECT SUM(premium_amount) FROM policy_billing_notes WHERE policy_number = '{policy_number}';
+16,Berapa jumlah kendaraan yang saya asuransikan?,SQL,SELECT COUNT(*) FROM insured_objects_vehicle WHERE customer_id = '{customer_id}';
+17,Apakah polis POL002 sudah berakhir?,SQL,SELECT CASE WHEN end_date < GETDATE() THEN 'Sudah Berakhir' ELSE 'Masih Aktif' END FROM policies WHERE policy_number = '{policy_number}';
+18,Berapa total pembayaran saya tahun ini?,SQL,SELECT SUM(amount_paid) FROM policy_payments WHERE customer_id = '{customer_id}' AND YEAR(payment_date) = YEAR(GETDATE());
+19,Kapan pembayaran terakhir saya?,SQL,SELECT MAX(payment_date) FROM policy_payments WHERE customer_id = '{customer_id}';
+20,Apakah saya memiliki klaim yang belum selesai?,SQL,"SELECT COUNT(*) FROM claims WHERE status IN ('open', 'processing') AND customer_id = '{customer_id}';"

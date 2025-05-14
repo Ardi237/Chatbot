@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>ChatDB UI</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" />
+  <style>
+    :root {
+      --primary-color: #4361ee;
+      --secondary-color: #3f37c9;
+      --accent-color: #4895ef;
+      --light-color: #f8f9fa;
+      --dark-color: #212529;
+      --success-color: #4bb543;
+      --warning-color: #ff9800;
+      --error-color: #f44336;
+      --border-radius: 8px;
+      --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      --transition: all 0.3s ease;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f5f7fa;
+      color: var(--dark-color);
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+
+    .container {
+      max-width: 1000px;
+      margin: 2rem auto;
+      padding: 1rem;
+      background-color: white;
+      border-radius: var(--border-radius);
+      box-shadow: var(--shadow);
+      transition: var(--transition);
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1rem;
+      border-bottom: 1px solid #e0e0e0;
+      margin-bottom: 1rem;
+    }
+
+    .header h2 {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      color: var(--primary-color);
+      font-weight: 600;
+    }
+
+    .logo-icon {
+      font-size: 1.5rem;
+      color: var(--primary-color);
+    }
+
+    .status-indicator {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 1rem;
+      background-color: #f1f8e9;
+      border-radius: 50px;
+      font-weight: 500;
+      font-size: 0.9rem;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+      transition: var(--transition);
+    }
+
+    .status-indicator.offline {
+      background-color: #ffebee;
+      color: var(--error-color);
+    }
+
+    .status-indicator.waiting {
+      background-color: #fff3e0;
+      color: var(--warning-color);
+    }
+
+    .status-indicator.online {
+      background-color: #e8f5e9;
+      color: var(--success-color);
+    }
+
+    .status-indicator i {
+      font-size: 0.8rem;
+    }
+
+    .chat-container {
+      display: flex;
+      flex-direction: column;
+      height: 500px;
+      background-color: #f9fafc;
+      border-radius: var(--border-radius);
+      padding: 1rem;
+      margin-bottom: 1rem;
+      overflow: hidden;
+    }
+
+    .chat-messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 0.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      scrollbar-width: thin;
+      scrollbar-color: #ccc transparent;
+    }
+
+    .chat-messages::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .chat-messages::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    .chat-messages::-webkit-scrollbar-thumb {
+      background-color: #ccc;
+      border-radius: 20px;
+    }
+
+    .message {
+      max-width: 80%;
+      padding: 0.75rem 1rem;
+      border-radius: 18px;
+      position: relative;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+      transition: transform 0.2s ease;
+      animation-duration: 0.5s;
+    }
+
+    .message:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+
+    .user {
+      background-color: var(--primary-color);
+      color: white;
+      align-self: flex-end;
+      border-bottom-right-radius: 4px;
+    }
+
+    .bot {
+      background-color: white;
+      border: 1px solid #e0e0e0;
+      align-self: flex-start;
+      border-bottom-left-radius: 4px;
+    }
+
+    .message-header {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 0.25rem;
+      font-weight: 600;
+      font-size: 0.85rem;
+    }
+
+    .message-content {
+      word-break: break-word;
+    }
+
+    .bot .message-content img,
+    .bot .message-content table {
+      max-width: 100%;
+      margin: 0.5rem 0;
+      border-radius: 4px;
+    }
+
+    .bot .message-content table {
+      border-collapse: collapse;
+      width: 100%;
+      margin-top: 10px;
+      overflow: hidden;
+      box-shadow: 0 0 8px rgba(0,0,0,0.05);
+    }
+
+    .bot .message-content th,
+    .bot .message-content td {
+      border: 1px solid #e0e0e0;
+      padding: 8px 12px;
+      text-align: left;
+    }
+
+    .bot .message-content th {
+      background-color: #f5f7fa;
+      font-weight: 600;
+    }
+
+    .bot .message-content tr:nth-child(even) {
+      background-color: #fafafa;
+    }
+
+    .bot .message-content tr:hover {
+      background-color: #f1f8ff;
+    }
+
+    .chat-input-container {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      margin-top: 1rem;
+    }
+
+    .chat-input {
+      display: flex;
+      gap: 0.5rem;
+      background-color: white;
+      border-radius: 50px;
+      padding: 0.35rem 0.5rem 0.35rem 1.25rem;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      transition: var(--transition);
+    }
+
+    .chat-input:focus-within {
+      box-shadow: 0 4px 12px rgba(67, 97, 238, 0.2);
+      border-color: var(--primary-color);
+    }
+
+    textarea {
+      flex: 1;
+      padding: 0.75rem 0;
+      border: none;
+      outline: none;
+      resize: none;
+      font-family: inherit;
+      font-size: 1rem;
+      background: transparent;
+    }
+
+    button {
+      background-color: var(--primary-color);
+      color: white;
+      border: none;
+      border-radius: 50px;
+      padding: 0 1.25rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      transition: var(--transition);
+    }
+
+    button:hover {
+      background-color: var(--secondary-color);
+      transform: translateY(-2px);
+    }
+
+    button:active {
+      transform: translateY(0);
+    }
+
+    button i {
+      font-size: 1.1rem;
+    }
+
+    .typing-indicator {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-left: 1rem;
+      opacity: 0.7;
+      font-size: 0.9rem;
+    }
+
+    .typing-dot {
+      width: 6px;
+      height: 6px;
+      background-color: var(--primary-color);
+      border-radius: 50%;
+      animation: typing-dot 1.5s infinite ease-in-out;
+    }
+
+    .typing-dot:nth-child(2) {
+      animation-delay: 0.2s;
+    }
+
+    .typing-dot:nth-child(3) {
+      animation-delay: 0.4s;
+    }
+
+    @keyframes typing-dot {
+      0%, 60%, 100% { transform: translateY(0); }
+      30% { transform: translateY(-5px); }
+    }
+
+    .fade-in {
+      animation: fadeIn 0.5s ease forwards;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .pulse {
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+      100% { transform: scale(1); }
+    }
+
+    /* Responsiveness */
+    @media (max-width: 768px) {
+      .container {
+        margin: 0;
+        border-radius: 0;
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+      }
+      
+      .chat-container {
+        flex: 1;
+        height: auto;
+      }
+      
+      .message {
+        max-width: 90%;
+      }
+    }
+
+    .loading {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 2rem;
+    }
+
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 4px solid rgba(0, 0, 0, 0.1);
+      border-radius: 50%;
+      border-left-color: var(--primary-color);
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      100% { transform: rotate(360deg); }
+    }
+
+    .empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 3rem 1rem;
+      text-align: center;
+      color: #666;
+    }
+
+    .empty-state i {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+      color: #ccc;
+    }
+
+    .empty-state p {
+      font-size: 1.1rem;
+      max-width: 80%;
+      margin-bottom: 1rem;
+    }
+
+    .empty-state small {
+      font-size: 0.85rem;
+      opacity: 0.7;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h2><i class="fas fa-robot logo-icon"></i> ChatDB Assistant</h2>
+      <div id="status" class="status-indicator waiting">
+        <i class="fas fa-circle-notch fa-spin"></i>
+        <span>Menunggu koneksi...</span>
+      </div>
+    </div>
+
+    <div class="chat-container">
+      <div id="chat-box" class="chat-messages">
+        <div class="empty-state">
+          <i class="fas fa-comments"></i>
+          <p>Selamat datang di ChatDB Assistant</p>
+          <small>Ajukan pertanyaanmu untuk memulai percakapan</small>
+        </div>
+      </div>
+    </div>
+
+    <form id="chat-form" style="display: none;">
+      <div class="chat-input-container">
+        <div class="chat-input">
+          <textarea 
+            id="prompt" 
+            placeholder="Tulis pertanyaan..." 
+            required
+            rows="1"
+            onInput="this.style.height = 'auto'; this.style.height = (this.scrollHeight < 120 ? this.scrollHeight : 120) + 'px'"
+          ></textarea>
+          <button type="submit">
+            <i class="fas fa-paper-plane"></i>
+            <span class="send-text">Kirim</span>
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  <script>
+    const conversationId = "html-session";
+    const model = "gpt-4-turbo";
+    let databaseIds = [];
+    const chatBox = document.getElementById("chat-box");
+    const promptInput = document.getElementById("prompt");
+    const form = document.getElementById("chat-form");
+    const status = document.getElementById("status");
+    
+    // Auto resize textarea
+    promptInput.addEventListener('input', function() {
+      this.style.height = 'auto';
+      this.style.height = (this.scrollHeight < 120 ? this.scrollHeight : 120) + 'px';
+    });
+
+    function updateStatus(state, message) {
+      status.className = `status-indicator ${state}`;
+      
+      let icon = '';
+      if (state === 'online') {
+        icon = '<i class="fas fa-circle"></i>';
+      } else if (state === 'waiting') {
+        icon = '<i class="fas fa-circle-notch fa-spin"></i>';
+      } else {
+        icon = '<i class="fas fa-exclamation-circle"></i>';
+      }
+      
+      status.innerHTML = `${icon} <span>${message}</span>`;
+    }
+
+    async function initConversation() {
+      try {
+        updateStatus('waiting', 'Menghubungkan ke server...');
+        
+        const res = await fetch("/conversation/init", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            conversation_id: conversationId,
+            model: model,
+            database_ids: databaseIds
+          })
+        });
+        
+        const data = await res.json();
+        
+        if (data.status === "ok" || data.status === "exists") {
+            if (!data.message.toLowerCase().includes("database")) {
+                updateStatus('online', 'Siap membantu');
+                form.style.display = "block";
+                
+                // Add welcome message
+                setTimeout(() => {
+                  addBotMessage("Halo! Saya ChatDB Assistant, siap membantu menjawab pertanyaan Anda tentang database yang tersedia. Silakan ajukan pertanyaan Anda.");
+                }, 500);
+            } else {
+                updateStatus('waiting', 'Menunggu konfigurasi database...');
+                form.style.display = "none";
+            }
+        } else {
+            updateStatus('offline', 'Terjadi kesalahan saat menghubungkan');
+        }
+      } catch (e) {
+        updateStatus('offline', 'Gagal terhubung ke server');
+        console.error(e);
+      }
+    }
+
+    function addUserMessage(text) {
+      const msgDiv = document.createElement("div");
+      msgDiv.className = "message user animate__animated animate__fadeInRight";
+      msgDiv.innerHTML = `
+        <div class="message-header">
+          <i class="fas fa-user"></i> Anda
+        </div>
+        <div class="message-content">${text}</div>
+      `;
+      chatBox.appendChild(msgDiv);
+      
+      // Clear empty state if present
+      const emptyState = chatBox.querySelector('.empty-state');
+      if (emptyState) {
+        chatBox.removeChild(emptyState);
+      }
+      
+      chatBox.scrollTop = chatBox.scrollHeight;
+      return msgDiv;
+    }
+
+    function addBotMessage(text) {
+      const msgDiv = document.createElement("div");
+      msgDiv.className = "message bot animate__animated animate__fadeInLeft";
+      msgDiv.innerHTML = `
+        <div class="message-header">
+          <i class="fas fa-robot"></i> Assistant
+        </div>
+        <div class="message-content">${text}</div>
+      `;
+      chatBox.appendChild(msgDiv);
+      chatBox.scrollTop = chatBox.scrollHeight;
+      return msgDiv;
+    }
+
+    function showTypingIndicator() {
+      const typingDiv = document.createElement("div");
+      typingDiv.className = "message bot typing-indicator animate__animated animate__fadeIn";
+      typingDiv.id = "typing-indicator";
+      typingDiv.innerHTML = `
+        <div class="message-header">
+          <i class="fas fa-robot"></i> Assistant
+        </div>
+        <div class="message-content">
+          <div style="display: flex; align-items: center;">
+            <span>  </span>
+            <div class="typing-dot"></div>
+            <div class="typing-dot"></div>
+            <div class="typing-dot"></div>
+          </div>
+        </div>
+      `;
+      chatBox.appendChild(typingDiv);
+      chatBox.scrollTop = chatBox.scrollHeight;
+      return typingDiv;
+    }
+
+    function removeTypingIndicator() {
+      const typingIndicator = document.getElementById("typing-indicator");
+      if (typingIndicator) {
+        chatBox.removeChild(typingIndicator);
+      }
+    }
+
+    // Process table markdown
+    function formatTableMarkdown(text) {
+      if (!text.includes('|')) return text;
+      
+      const lines = text.split('\n');
+      const tableLines = [];
+      let inTable = false;
+      let tableHTML = '';
+      
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        
+        if (line.includes('|')) {
+          if (!inTable) {
+            inTable = true;
+            tableHTML = '<table>';
+          }
+          
+          const cells = line.split('|').filter(cell => cell.trim() !== '');
+          
+          if (line.includes('---')) {
+            // This is a separator line, skip it
+            continue;
+          }
+          
+          if (tableHTML.includes('<tr>') && !tableHTML.includes('</thead>')) {
+            // This is the first row, make it a header
+            tableHTML += '<thead><tr>';
+            cells.forEach(cell => {
+              tableHTML += `<th>${cell.trim()}</th>`;
+            });
+            tableHTML += '</tr></thead><tbody>';
+          } else {
+            tableHTML += '<tr>';
+            cells.forEach(cell => {
+              tableHTML += `<td>${cell.trim()}</td>`;
+            });
+            tableHTML += '</tr>';
+          }
+        } else if (inTable) {
+          inTable = false;
+          tableHTML += '</tbody></table>';
+          tableLines.push(tableHTML);
+          tableLines.push(line);
+        } else {
+          tableLines.push(line);
+        }
+      }
+      
+      if (inTable) {
+        tableHTML += '</tbody></table>';
+        tableLines.push(tableHTML);
+      }
+      
+      return tableLines.join('\n');
+    }
+
+    // 🔁 Auto-refresh tiap 5 detik sampai backend siap
+    let retries = 0;
+    const interval = setInterval(() => {
+      retries++;
+      if (retries <= 10 && form.style.display === "none") {
+        initConversation();
+      } else {
+        clearInterval(interval);
+      }
+    }, 5000);
+
+    // 🧠 Chat handling
+    form.onsubmit = async (e) => {
+      e.preventDefault();
+      const prompt = promptInput.value.trim();
+      if (!prompt) return;
+
+      addUserMessage(prompt);
+      promptInput.value = "";
+      promptInput.style.height = "auto";
+      
+      // Show typing indicator
+      showTypingIndicator();
+      
+      try {
+        const res = await fetch("/ask", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ 
+            prompt, 
+            conversation_id: conversationId, 
+            rag_mode: "combine" 
+          })
+        });
+
+        // Remove typing indicator
+        removeTypingIndicator();
+        
+        if (!res.ok) {
+          throw new Error(`HTTP error! Status: ${res.status}`);
+        }
+
+        const data = await res.json();
+        
+        // Format response, replacing tables if present
+        let formattedResponse = data.response;
+        formattedResponse = formatTableMarkdown(formattedResponse);
+        
+        addBotMessage(formattedResponse);
+      } catch (error) {
+        removeTypingIndicator();
+        console.error("Error:", error);
+        addBotMessage("Maaf, terjadi kesalahan saat memproses pertanyaan Anda. Silakan coba lagi.");
+        updateStatus('offline', 'Koneksi terputus');
+        
+        // Try to reconnect after error
+        setTimeout(() => {
+          initConversation();
+        }, 3000);
+      }
+    };
+
+    // Enable pressing Enter to send message (Shift+Enter for new line)
+    promptInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        form.dispatchEvent(new Event("submit"));
+      }
+    });
+
+    // 🚀 First init call
+    window.addEventListener('load', () => {
+      initConversation();
+    });
+  </script>
+</body>
+</html>
