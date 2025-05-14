@@ -8,7 +8,6 @@ from llama_index.core import VectorStoreIndex, StorageContext
 from llama_index.embeddings.openai import OpenAIEmbedding
 from llama_index.core.retrievers import VectorIndexRetriever
 from llama_index.core.retrievers import RouterRetriever, QueryFusionRetriever
-
 from llama_index.core.query_engine import RetrieverQueryEngine
 
 from file_indexer import match_sql_template, match_faq_answer
@@ -21,6 +20,7 @@ from qdrant_client import QdrantClient
 from file_indexer import match_sql_template, match_faq_answer, load_sql_templates  
 
 sql_templates_loaded = False
+agent_cache = {}  # conversation_id → agent instance
 
 
 @st.cache_resource(show_spinner="🔁 Loading LLM...")
@@ -173,3 +173,54 @@ def get_retriever_by_mode(rag_mode: str) -> RetrieverQueryEngine:
     else:
         raise ValueError(f"Unsupported RAG mode: {rag_mode}")
     
+
+# Tambahan di agent.py
+
+def process_user_prompt_with_session(prompt: str, conversation: Conversation, rag_mode: str = "combine") -> str:
+    load_sql_templates()
+
+    enriched_prompt = f"""
+    [User Info]
+    ID: {conversation.id}
+    Username: agentbudi
+    Role: guest
+    Status: active
+
+    [Question]
+    {prompt.strip()}
+    """
+
+    # 1. SQL template
+    sql = match_sql_template(prompt)
+    if sql:
+        try:
+            db_id = conversation.database_ids[0]
+            uri = conversation.get_database_uri(db_id)
+            return safe_sql_result(uri, sql) or "✅ SQL dieksekusi tapi tidak ada hasil."
+        except Exception as e:
+            return f"⚠️ Gagal mengeksekusi SQL: {e}"
+
+    # 2. FAQ
+    faq = match_faq_answer(prompt)
+    if faq:
+        return faq
+
+    # 3. GPT fallback
+    if conversation.id not in agent_cache:
+        tools = MultiDatabaseToolSpec().from_conversation(conversation)
+        chat_history = [ChatMessage(role=m.role, content=m.content) for m in conversation.messages]
+        llm = OpenAI(model=conversation.agent_model)
+        retriever_engine = get_retriever_by_mode(rag_mode)
+
+        agent_cache[conversation.id] = ReActAgent.from_tools(
+            tools=tools.to_tool_list(),
+            llm=llm,
+            retriever=retriever_engine.retriever,
+            chat_history=chat_history,
+            verbose=True,
+            max_iterations=10,
+        )
+
+    agent = agent_cache[conversation.id]
+    response = agent.chat(enriched_prompt)
+    return response.response

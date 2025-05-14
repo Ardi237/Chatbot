@@ -98,3 +98,13 @@ class MultiDatabaseToolSpec(BaseToolSpec, BaseReader):
 
     def list_databases(self) -> List[str]:
         return list(self.database_specs.keys())
+    
+    def from_conversation(self, conversation) -> "MultiDatabaseToolSpec":
+        """
+        Load all database URIs from a Conversation object.
+        """
+        for db_id in conversation.database_ids:
+            uri = conversation.get_database_uri(db_id)
+            self.add_connection(database_name=db_id, uri=uri)
+        return self
+    

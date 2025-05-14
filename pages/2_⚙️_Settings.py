@@ -12,6 +12,7 @@ from vector_indexer import index_structure
 from file_indexer import index_uploaded_files
 
 import pandas as pd
+import requests
 
 os.makedirs("uploads", exist_ok=True)
 os.makedirs("data/faq_docs", exist_ok=True)
@@ -83,6 +84,23 @@ def fetch_table_relations_and_tables(engine):
 
     return rel_list, table_names, structure_map
 
+# ─────────────── REQUEST HTML ───────────────
+def sync_to_backend(conversation_id: str, model: str, database_ids: list[str], database_uris: dict[str, str]):
+    url = "http://localhost:8000/sync-databases"
+    payload = {
+        "conversation_id": conversation_id,
+        "model": model,
+        "database_ids": database_ids,
+        "database_uris": database_uris
+    }
+    try:
+        response = requests.post(url, json=payload)
+        if response.status_code == 200:
+            st.success("✅ Berhasil sinkron ke backend!")
+        else:
+            st.warning(f"⚠️ Gagal sync: {response.text}")
+    except Exception as e:
+        st.error(f"❌ Error: {e}")
 
 # ─────────────── UI ───────────────
 init_session_state()
@@ -174,6 +192,23 @@ if "table_relations" in st.session_state and st.button("➕ Index Structure to V
     with st.spinner("Indexing structure..."):
         index_structure(st.session_state["table_relations"])
         st.success("Structure indexed successfully to vectorstore!", icon="✅")
+
+selected_db_ids = list(st.session_state.databases.keys())
+conversation_id = "html-session"
+model_used = "gpt-4-turbo"
+
+if st.button("🔄 Sinkronisasi ke Backend"):
+    if st.session_state.databases:
+        db_ids = list(st.session_state.databases.keys())
+        db_uris = {
+            dbid: st.session_state.databases[dbid].uri
+            for dbid in db_ids
+        }
+
+        sync_to_backend(conversation_id="html-session", model="gpt-4-turbo", database_ids=db_ids, database_uris=db_uris)
+    else:
+        st.warning("⚠️ Tidak ada database yang dipilih.")
+
 
 # Backup Section
 st.markdown("## Backup Settings")
