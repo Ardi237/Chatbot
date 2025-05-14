@@ -97,7 +97,7 @@ elif not conversation_valid(st.session_state.current_conversation):
     st.markdown("### Could not load conversation: missing database.\nRestore your settings first!")
 
 elif not st.session_state.openai_key:
-    st.error("OpenAI API key not set. Go to ⚙️ Settings page!", "⚠️")
+    st.error("⚠️ OpenAI API key not set. Go to ⚙️ Settings page!")
 
 else:
     cid = st.session_state.current_conversation

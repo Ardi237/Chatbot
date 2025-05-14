@@ -1,5 +1,5 @@
 No,Pertanyaan,Kategori,SQL Template
-1,Apa status polis dengan nomor POL001?,SQL,SELECT status FROM policies WHERE policy_number = '{policy_number}';
+1,Status polis {policy_number}?,SQL,SELECT status FROM policies WHERE policy_number = '{policy_number}';
 2,Berapa tagihan saya yang belum dibayar?,SQL,SELECT SUM(amount) FROM policy_billing_notes WHERE status = 'unpaid' AND customer_id = '{customer_id}';
 3,Bagaimana cara mengajukan klaim?,RAG,
 4,Apa itu deductible dalam asuransi?,RAG,

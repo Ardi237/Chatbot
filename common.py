@@ -58,18 +58,17 @@ class Conversation:
 
 
 def init_session_state():
-    """Inisialisasi default Streamlit session_state."""
     if "openai_key" not in st.session_state:
         st.session_state.openai_key = ""
 
     if "databases" not in st.session_state:
-        st.session_state.databases: Dict[str, DatabaseProps] = {}
+        st.session_state.databases = {}
 
     if "conversations" not in st.session_state:
-        st.session_state.conversations: Dict[str, Conversation] = {}
+        st.session_state.conversations = {}
 
     if "current_conversation" not in st.session_state:
-        st.session_state.current_conversation: str = ""
+        st.session_state.current_conversation = ""
 
     if "retry" not in st.session_state:
         st.session_state.retry = None

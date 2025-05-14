@@ -18,7 +18,9 @@ from common import Conversation, DatabaseProps
 from multi_database import MultiDatabaseToolSpec, TrackingDatabaseToolSpec
 from qdrant_client import QdrantClient
 
+from file_indexer import match_sql_template, match_faq_answer, load_sql_templates  
 
+sql_templates_loaded = False
 
 
 @st.cache_resource(show_spinner="🔁 Loading LLM...")
@@ -99,7 +101,12 @@ def get_agent(conversation_id: str, last_update_timestamp: float, rag_mode: str 
 def process_user_prompt(prompt: str, conversation_id: str, rag_mode: str = "combine") -> str:
     """Pipeline: SQL Template → FAQ → GPT"""
 
-    # 0. Inject user info
+    global sql_templates_loaded
+    if not sql_templates_loaded:
+        load_sql_templates()
+        sql_templates_loaded = True
+
+    # Inject user info
     user_id = st.session_state.get("mock_user_id", "unknown")
     username = st.session_state.get("mock_username", "unknown")
     role = st.session_state.get("mock_role", "guest")
@@ -135,7 +142,6 @@ def process_user_prompt(prompt: str, conversation_id: str, rag_mode: str = "comb
     agent = get_agent(conversation_id, st.session_state.get("last_update", 0.0), rag_mode)
     response = agent.chat(enriched_prompt)
     return response.response
-
 
 
 
