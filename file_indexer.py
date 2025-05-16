@@ -15,7 +15,8 @@ from sklearn.metrics.pairwise import cosine_similarity
 # ────────────────────────────────────────────────
 def index_uploaded_files(folder_path="uploads", collection_name="uploaded_files"):
     documents = SimpleDirectoryReader(folder_path).load_data()
-    client = QdrantClient(url="http://localhost:6333")
+    QDRANT_URL = os.getenv("QDRANT_URL", "http://localhost:6333")
+    client = QdrantClient(url=QDRANT_URL)
     vector_store = QdrantVectorStore(client=client, collection_name=collection_name)
     storage_context = StorageContext.from_defaults(vector_store=vector_store)
     index = VectorStoreIndex.from_documents(

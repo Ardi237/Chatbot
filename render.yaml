@@ -10,3 +10,5 @@ services:
         value: localhost
       - key: QDRANT_PORT
         value: 6333
+build:
+  pythonVersion: 3.10.13

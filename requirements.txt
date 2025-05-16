@@ -153,7 +153,7 @@ python-dateutil==2.9.0.post0
 python-dotenv==1.1.0
 python-multipart==0.0.20
 pytz==2025.2
-pywin32==310
+# pywin32==310
 PyYAML==6.0.2
 qdrant-client==1.14.2
 referencing==0.36.2

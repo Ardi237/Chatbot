@@ -12,7 +12,7 @@ from llama_index.core.query_engine import RetrieverQueryEngine
 
 from file_indexer import match_sql_template, match_faq_answer
 from sql_executor import safe_sql_result
-
+import os
 from common import Conversation, DatabaseProps
 from multi_database import MultiDatabaseToolSpec, TrackingDatabaseToolSpec
 from qdrant_client import QdrantClient
@@ -29,6 +29,8 @@ def get_llm(model: str, api_key: str):
     return OpenAI(model=model)
 
 
+QDRANT_URL = os.getenv("QDRANT_URL", "http://localhost:6333")
+
 @st.cache_resource(show_spinner="🔗 Connecting to database...")
 def get_database_spec(database_id: str) -> TrackingDatabaseToolSpec:
     database: DatabaseProps = st.session_state.databases[database_id]
@@ -42,14 +44,15 @@ def database_spec_handler(database: str, query: str, items: list):
 
 
 def load_structural_context_retriever():
-    client = QdrantClient(url="http://localhost:6333")
+   
+    client = QdrantClient(url=QDRANT_URL)
     vector_store = QdrantVectorStore(client=client, collection_name="db_structure")
     index = VectorStoreIndex.from_vector_store(vector_store)
     return index.as_retriever(similarity_top_k=3)
 
 
 def load_uploaded_file_retriever():
-    client = QdrantClient(url="http://localhost:6333")
+    client = QdrantClient(url=QDRANT_URL)
     vector_store = QdrantVectorStore(client=client, collection_name="uploaded_files")
     index = VectorStoreIndex.from_vector_store(vector_store)
     return index.as_retriever(similarity_top_k=3)
@@ -146,7 +149,7 @@ def process_user_prompt(prompt: str, conversation_id: str, rag_mode: str = "comb
 
 
 def get_retriever_by_mode(rag_mode: str) -> RetrieverQueryEngine:
-    client = QdrantClient(url="http://localhost:6333")
+    client = QdrantClient(url=QDRANT_URL)
 
     if rag_mode == "only-db":
         vector_store = QdrantVectorStore(client=client, collection_name="db_structure")
