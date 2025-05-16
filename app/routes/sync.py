@@ -4,8 +4,15 @@ from pydantic import BaseModel
 from app.common.Conversation import Conversation  
 from app.routes.conversation import chat_sessions
 from app.schemas.request_schema import SyncRequest
+from app.utils.session_storage import save_sessions, load_sessions
+chat_sessions = load_sessions()  # ⬅️ Restore saat start
 
 router = APIRouter()
+
+latest_db_config = {
+    "database_ids": [],
+    "database_uris": {}
+}
 
 @router.post("/sync-databases")
 def sync_databases(data: SyncRequest):
@@ -17,9 +24,15 @@ def sync_databases(data: SyncRequest):
             id=data.conversation_id,
             agent_model=data.model,
             database_ids=data.database_ids,
-            database_uris=data.database_uris  # 🆕 simpan uri
+            database_uris=data.database_uris
         )
         chat_sessions[data.conversation_id] = conversation
+
+        # 🆕 Simpan sebagai default untuk session publik
+        latest_db_config["database_ids"] = data.database_ids
+        latest_db_config["database_uris"] = data.database_uris
+        save_sessions(chat_sessions)
+
         return { "status": "ok", "message": "✅ Sinkronisasi berhasil!" }
 
     except Exception as e:

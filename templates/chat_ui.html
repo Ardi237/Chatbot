@@ -389,6 +389,17 @@
   </style>
 </head>
 <body>
+
+  <div id="login-screen" style="padding: 2rem; max-width: 500px; margin: auto;">
+  <h3 style="margin-bottom: 1rem;">Masuk ke ChatDB</h3>
+  <form id="start-form">
+    <input id="input-name" placeholder="Nama" required style="width: 100%; margin-bottom: 0.5rem; padding: 0.5rem;" />
+    <input id="input-email" placeholder="Email" required style="width: 100%; margin-bottom: 0.5rem; padding: 0.5rem;" />
+    <input id="input-phone" placeholder="No Telepon" required style="width: 100%; margin-bottom: 1rem; padding: 0.5rem;" />
+    <button type="submit" style="width: 100%;">Mulai Chat</button>
+  </form>
+</div>
+
   <div class="container">
     <div class="header">
       <h2><i class="fas fa-robot logo-icon"></i> ChatDB Assistant</h2>
@@ -428,7 +439,7 @@
   </div>
 
   <script>
-    const conversationId = "html-session";
+    const conversationId = localStorage.getItem("session_id") || "html-session";
     const model = "gpt-4-turbo";
     let databaseIds = [];
     const chatBox = document.getElementById("chat-box");
@@ -457,7 +468,7 @@
       status.innerHTML = `${icon} <span>${message}</span>`;
     }
 
-    async function initConversation() {
+    async function initConversation(id = conversationId) {
       try {
         updateStatus('waiting', 'Menghubungkan ke server...');
         
@@ -465,7 +476,7 @@
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            conversation_id: conversationId,
+            conversation_id: id,
             model: model,
             database_ids: databaseIds
           })
@@ -688,7 +699,30 @@
 
     // 🚀 First init call
     window.addEventListener('load', () => {
-      initConversation();
+      document.getElementById("start-form").onsubmit = async function(e) {
+        e.preventDefault();
+
+        const name = document.getElementById("input-name").value;
+        const email = document.getElementById("input-email").value;
+        const phone = document.getElementById("input-phone").value;
+
+        const res = await fetch("/public/start-session", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name, email, phone })
+        });
+
+        const data = await res.json();
+        const sessionId = data.session_id;
+        localStorage.setItem("session_id", sessionId);
+
+        // Sembunyikan form login & tampilkan chatbot
+        document.getElementById("login-screen").style.display = "none";
+        document.querySelector(".container").style.display = "block";
+
+        initConversation(sessionId);  // lanjutkan pakai ID session dari backend
+      };
+
     });
   </script>
 </body>

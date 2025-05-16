@@ -1,8 +1,10 @@
 # routes/conversation.py
 from fastapi import APIRouter, HTTPException
 from app.schemas.request_schema import InitConversationRequest
+from app.utils.session_storage import save_sessions, load_sessions
 from common import Conversation
 
+chat_sessions = load_sessions()  
 # Global memory store sementara (bisa diganti Redis / DB nantinya)
 chat_sessions = {}
 
@@ -29,6 +31,7 @@ def init_conversation(data: InitConversationRequest):
             database_ids=data.database_ids,
         )
         chat_sessions[data.conversation_id] = conversation
+        save_sessions(chat_sessions)
 
         return {"status": "ok", "message": "Conversation initialized."}
     except Exception as e:

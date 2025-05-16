@@ -1,7 +1,7 @@
 # app/main.py
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.routes import ask, indexing, faq, template, conversation, sync 
+from app.routes import ask, indexing, faq, template, conversation, sync, public, admin, whatsapp
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse
 from fastapi import Request
@@ -24,7 +24,9 @@ app.include_router(faq.router, tags=["FAQ"])
 app.include_router(template.router, tags=["SQL Template"])
 app.include_router(conversation.router, tags=["Conversation"])
 app.include_router(sync.router, tags=["Sync"])
-
+app.include_router(public.router, tags=["Public"])
+app.include_router(admin.router, tags=["Admin"])
+app.include_router(whatsapp.router, tags=["Whatsapp"])
 # ─────────────── Root ───────────────
 @app.get("/")
 def read_root():

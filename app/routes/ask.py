@@ -1,4 +1,4 @@
-# routes/ask.py (revisi untuk gunakan memory store)
+# routes/ask.py
 from fastapi import APIRouter, HTTPException
 from app.schemas.request_schema import AskRequest
 from agent import process_user_prompt_with_session
@@ -13,16 +13,17 @@ def ask_endpoint(data: AskRequest):
             return {"response": "⚠️ Sedang dalam perbaikan. Harap tunggu hingga konfigurasi selesai."}
 
         conversation = chat_sessions[data.conversation_id]
-        print("✅ ASK FROM:", data.prompt)
-        print("✅ USING DBs:", conversation.database_ids)
-        print("✅ DB URI SAMPLE:", conversation.get_database_uri(conversation.database_ids[0]))
+        print("✅ [ASK] Prompt:", data.prompt)
+        print("✅ [ASK] DBs:", conversation.database_ids)
+        print("✅ [ASK] URI Sample:", conversation.get_database_uri(conversation.database_ids[0]))
 
         result = process_user_prompt_with_session(
             prompt=data.prompt,
             conversation=conversation,
-            rag_mode=data.rag_mode
+            rag_mode=data.rag_mode or "combine"
         )
 
+        # Convert SQL result (list of lists) to HTML table if needed
         if isinstance(result, list) and all(isinstance(row, list) for row in result):
             html_table = "<table border='1'><thead><tr>"
             html_table += "".join([f"<th>Kolom {i+1}</th>" for i in range(len(result[0]))])
@@ -33,6 +34,7 @@ def ask_endpoint(data: AskRequest):
             return {"response": html_table}
 
         return {"response": result}
+
     except Exception as e:
         import traceback
         traceback.print_exc()

@@ -41,4 +41,10 @@ class SyncRequest(BaseModel):
     conversation_id: str
     model: str
     database_ids: List[str]
-    database_uris: Dict[str, str]  # ✅ WAJIB ADA!
+    database_uris: Dict[str, str] 
+
+# ────── PUBLIC SESSION ──────
+class StartSessionRequest(BaseModel):
+    name: str
+    email: str
+    phone: str
